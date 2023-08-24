@@ -14,7 +14,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/actumn/celery.node.git"
+    "url": "git+https://github.com/tienanh-clevergroup/celery.node.git"
   },
   "keywords": [
     "node-celery",
