@@ -14,7 +14,7 @@ const keyPrefix = "celery-task-meta-";
  * @exports
  */
 export default class RedisBackend implements CeleryBackend {
-  redis: Redis.Redis;
+  connection: Redis.Redis;
 
   /**
    * Redis backend class
@@ -23,7 +23,7 @@ export default class RedisBackend implements CeleryBackend {
    * @param {object} opts the options object for redis connect of ioredis
    */
   constructor(url: string, opts: object) {
-    this.redis = new Redis(url, {...opts});
+    this.connection = new Redis(url, {...opts});
   }
 
   /**
@@ -33,21 +33,21 @@ export default class RedisBackend implements CeleryBackend {
    */
   public isReady(): Promise<void> {
     return new Promise((resolve, reject) => {
-      if (this.redis.status === "ready") {
+      if (this.connection.status === "ready") {
         resolve();
       } else {
         let handleError; // eslint-disable-line prefer-const
         const handleReady = () => {
-          this.redis.removeListener("error", handleError);
+          this.connection.removeListener("error", handleError);
           resolve();
         };
         handleError = err => {
-          this.redis.removeListener("ready", handleReady);
+          this.connection.removeListener("ready", handleReady);
           reject(err);
         };
 
-        this.redis.once("ready", handleReady);
-        this.redis.once("error", handleError);
+        this.connection.once("ready", handleReady);
+        this.connection.once("error", handleError);
       }
     });
   }
@@ -57,7 +57,7 @@ export default class RedisBackend implements CeleryBackend {
    * @returns {Promise} promises that continues if redis disconnected.
    */
   public disconnect(): Promise<string> {
-    return this.redis.quit();
+    return this.connection.quit();
   }
 
   /**
@@ -102,8 +102,8 @@ export default class RedisBackend implements CeleryBackend {
    */
   private set(key: string, value: string): Promise<["OK", number]> {
     return Promise.all([
-      this.redis.setex(key, 86400, value),
-      this.redis.publish(key, value) // publish command for subscribe
+      this.connection.setex(key, 86400, value),
+      this.connection.publish(key, value) // publish command for subscribe
     ]);
   }
 
@@ -114,6 +114,13 @@ export default class RedisBackend implements CeleryBackend {
    * @return {Promise}
    */
   private get(key: string): Promise<string> {
-    return this.redis.get(key);
+    return this.connection.get(key);
+  }
+
+  /**
+   * initResultQueue
+   */
+  public initResultQueue(key) {
+    
   }
 }

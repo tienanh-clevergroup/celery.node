@@ -3,7 +3,7 @@ import { CeleryBackend } from ".";
 
 export default class AMQPBackend implements CeleryBackend {
   opts: { [ key:string ]: any };
-  connect: Promise<amqplib.Connection>;
+  connection: Promise<amqplib.Connection>;
   channel: Promise<amqplib.Channel>;
 
   /**
@@ -14,8 +14,8 @@ export default class AMQPBackend implements CeleryBackend {
    */
   constructor(url: string, opts: object) {
     this.opts = opts;
-    this.connect = amqplib.connect(url, opts);
-    this.channel = this.connect
+    this.connection = amqplib.connect(url, opts);
+    this.channel = this.connection
       .then(conn => conn.createChannel())
       .then(ch =>
         ch
@@ -35,7 +35,7 @@ export default class AMQPBackend implements CeleryBackend {
    * @returns {Promise} promises that continues if amqp connected.
    */
   public isReady(): Promise<amqplib.Connection> {
-    return this.connect;
+    return this.connection;
   }
 
   /**
@@ -43,7 +43,7 @@ export default class AMQPBackend implements CeleryBackend {
    * @returns {Promise} promises that continues if amqp disconnected.
    */
   public disconnect(): Promise<void> {
-    return this.connect.then(conn => conn.close());
+    return this.connection.then(conn => conn.close());
   }
 
   /**
@@ -59,20 +59,20 @@ export default class AMQPBackend implements CeleryBackend {
     result: any,
     state: string
   ): Promise<boolean> {
-    const queue = taskId.replace(/-/g, "");
+    const queue = taskId;
     return this.channel
-      .then(ch =>
-        ch
-          .assertQueue(queue, {
-            durable: true,
-            autoDelete: true,
-            exclusive: false,
-            // nowait: false,
-            arguments: {
-              "x-expires": this.opts.CELERY_RESULT_EXPIRES || 86400000
-            }
-          })
-          .then(() => Promise.resolve(ch))
+      .then(ch => Promise.resolve(ch)
+        // ch
+        //   .assertQueue(queue, {
+        //     durable: true,
+        //     autoDelete: true,
+        //     exclusive: false,
+        //     // nowait: false,
+        //     arguments: {
+        //       "x-expires": this.opts.CELERY_RESULT_EXPIRES || 86400000
+        //     }
+        //   })
+        //   .then(() => Promise.resolve(ch))
       )
       .then(ch =>
 
@@ -104,20 +104,21 @@ export default class AMQPBackend implements CeleryBackend {
    * @returns {Promise}
    */
   public getTaskMeta(taskId: string): Promise<object> {
-    const queue = taskId.replace(/-/g, "");
+    const queue = taskId;
     return this.channel
-      .then(ch =>
-        ch
-          .assertQueue(queue, {
-            durable: true,
-            autoDelete: true,
-            exclusive: false,
-            // nowait: false,
-            arguments: {
-              "x-expires": this.opts.CELERY_RESULT_EXPIRES || 86400000
-            }
-          })
-          .then(() => Promise.resolve(ch))
+      .then(ch => Promise.resolve(ch)
+
+        // ch
+        //   .assertQueue(queue, {
+        //     durable: true,
+        //     autoDelete: true,
+        //     exclusive: false,
+        //     // nowait: false,
+        //     arguments: {
+        //       "x-expires": this.opts.CELERY_RESULT_EXPIRES || 86400000
+        //     }
+        //   })
+          // .then(() => Promise.resolve(ch))
       )
       .then(ch =>
         ch.get(queue, {
@@ -144,5 +145,27 @@ export default class AMQPBackend implements CeleryBackend {
         const body = msg.content.toString("utf-8");
         return JSON.parse(body);
       });
+  }
+
+  /**
+   * initResultQueue
+   */
+  public initResultQueue(taskId: string) {
+    const queue = taskId;
+    this.channel
+      .then(ch =>
+
+        ch
+          .assertQueue(queue, {
+            durable: true,
+            autoDelete: true,
+            exclusive: false,
+            // nowait: false,
+            arguments: {
+              "x-expires": this.opts.CELERY_RESULT_EXPIRES || 180000
+            }
+          })
+          .then(() => Promise.resolve(ch))
+      )
   }
 }

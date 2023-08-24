@@ -6,7 +6,7 @@ import { AsyncResult } from "./result";
 class TaskMessage {
   constructor(
     readonly headers: object,
-    readonly properties: object,
+    readonly properties: {correlationId: string, replyTo: string},
     readonly body: [Array<any>, object, object] | object,
     readonly sentEvent: object
   ) {}
@@ -24,7 +24,7 @@ export default class Client extends Base {
 
   public sendTaskMessage(taskName: string, message: TaskMessage): void {
     const { headers, properties, body /*, sentEvent */ } = message;
-
+    this.backend.initResultQueue(properties.replyTo)
     const exchange = "";
     // exchangeType = 'direct';
     // const serializer = 'json';
@@ -67,7 +67,7 @@ export default class Client extends Base {
       },
       properties: {
         correlationId: taskId,
-        replyTo: ""
+        replyTo: taskId
       },
       body: [args, kwargs, {}],
       sentEvent: null
@@ -96,7 +96,7 @@ export default class Client extends Base {
       headers: {},
       properties: {
         correlationId: taskId,
-        replyTo: ""
+        replyTo: taskId
       },
       body: {
         task: taskName,
